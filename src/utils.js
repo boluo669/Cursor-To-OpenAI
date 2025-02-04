@@ -7,7 +7,13 @@ const regex = /<\|BEGIN_SYSTEM\|>.*?<\|END_SYSTEM\|>.*?<\|BEGIN_USER\|>.*?<\|END
 
 function generateCursorBody(messages, modelName) {
 
-  const formattedMessages = messages.map((msg) => ({
+  const systemMessages = messages
+    .filter((msg) => msg.role === 'system');
+  const instruction = systemMessages.map((msg) => msg.content).join('\n')
+
+  const nonSystemMessages = messages
+    .filter((msg) => msg.role !== 'system');
+  const formattedMessages = nonSystemMessages.map((msg) => ({
     ...msg,
     role: msg.role === 'user' ? 1 : 2,
     messageId: uuidv4(),
@@ -16,7 +22,7 @@ function generateCursorBody(messages, modelName) {
   const chatBody = {
     userMessages: formattedMessages,
     instructions: {
-      instruction: 'Always respond in 中文',
+      instruction: "Alway respond in 中文.\n" + instruction
     },
     model: {
       name: modelName,
@@ -58,6 +64,7 @@ function chunkToUtf8String(chunk) {
       const magicNumber = parseInt(buffer.subarray(i, i + 1).toString('hex'), 16)
       const dataLength = parseInt(buffer.subarray(i + 1, i + 5).toString('hex'), 16)
       const data = buffer.subarray(i + 5, i + 5 + dataLength)
+
       if(magicNumber == 0) {
         const resMessage = $root.ResMessage.decode(data);
         const content = resMessage.content
